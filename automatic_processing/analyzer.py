@@ -53,6 +53,21 @@ from tools import print_cm
 import time
 from tools import extract_features
 from copy import deepcopy
+from sklearn.inspection import permutation_importance
+import pandas as pd
+from sklearn.decomposition import PCA
+import sys
+
+# Agregado por J-A: Parche de compatibilidad para pandas antiguo
+# Los modelos guardados con pandas < 0.25 usan 'pandas.indexes' que fue renombrado
+# Este parche permite cargar esos modelos con versiones modernas de pandas
+if not hasattr(pd, 'indexes'):
+    sys.modules['pandas.indexes'] = pd.core.indexes
+    sys.modules['pandas.indexes.base'] = pd.core.indexes.base
+    sys.modules['pandas.indexes.range'] = pd.core.indexes.range
+    # pandas.indexes.numeric ya no existe en pandas 2.0+, usar base como fallback
+    sys.modules['pandas.indexes.numeric'] = pd.core.indexes.base
+    #Fin parche
 
 
 class Analyzer:
