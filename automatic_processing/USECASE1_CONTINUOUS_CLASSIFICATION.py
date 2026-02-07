@@ -55,13 +55,14 @@ action_range = ['training', 'analyzing', 'making_decision', 'display']
 
 
 # Read input arguments
-if len(sys.argv) != 4:
-    print('This usecase should be use with 3 arguments: ')
-    print('\t arg1: configuration file path (i.e. settings_15.json) with the configuration file located in config folder')
-    print('\t arg2: action, to be chosen between ', action_range)
-    print('\t Please notice that analyzing should not be called if a model has not been trained previously...')
-    print('\t arg3: verbatim, depending on how chatty you want the system to be. Should be in ', verbatim_range)
-    sys.exit()
+# Read input arguments
+#if len(sys.argv) != 4:
+#    print('This usecase should be use with 3 arguments: ')
+#    print('\t arg1: configuration file path (i.e. settings_15.json) with the configuration file located in config folder')
+#    print('\t arg2: action, to be chosen between ', action_range)
+#    print('\t Please notice that analyzing should not be called if a model has not been trained previously...')
+#    print('\t arg3: verbatim, depending on how chatty you want the system to be. Should be in ', verbatim_range)
+#    sys.exit()
 
 setting_file_path = sys.argv[1]
 action = sys.argv[2]
