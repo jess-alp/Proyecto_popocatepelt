@@ -129,13 +129,13 @@ class Recording:
         # NB: FeatureVector is a pattern of features to be computed again for every new observation to analyze
         features = FeatureVector(config, verbatim=self._verbatim)
         for i_analyzed in range(0,self.length_n,delta):
-            # Find signal piece to analyze
-            i_start = i_analyzed - int(window_length_n/2)
-            i_end = i_analyzed + int(window_length_n/2)
-            # If not enough signal to analyze, unknown prediction
-            if i_start < 0 or i_end > (self.length_n - 1):
-                self.predictedProbas[:,i_analyzed] = [None]*n_classes
-                continue # pass the rest of the loop for this iteration
+            # LOOP FOR SLIDING WINDOW:
+            # Start and end of window:
+            for i_analyzed in range(0, num_window):
+                i_start = (i_analyzed * window_length_n) - (i_analyzed * delta)
+                i_end = (i_analyzed + 1) * window_length_n - (i_analyzed * delta)
+                if i_analyzed == (num_window - 1):
+                    i_end = np.shape(self.data)[0]
 
             # Otherwise, get signal, and for each bandwidth: get features and make prediction and store predictions
             # Get signal
