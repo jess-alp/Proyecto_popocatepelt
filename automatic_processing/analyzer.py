@@ -74,10 +74,14 @@ class Analyzer:
         Initialization method
         """
         self.scaler = None
+        # Added by KBM (2/12/21)
+        self.pca = None
+        #ending
         self.model = deepcopy(config.learning['algo'])
         self.labelEncoder = None
         self.pathToCatalogue = config.general['project_root']+config.application['name'].upper()+'/'+config.learning['path_to_catalogue']
         self.catalogue = pickle.load(open(self.pathToCatalogue,'rb'))
+        self.catalogue_test = pickle.load(open(self.pathToCatalogue_test, 'rb'))
         self._verbatim = verbatim
         if self._verbatim>0:
             print('\n\n *** ANALYZER ***')
@@ -182,6 +186,20 @@ class Analyzer:
         if verbatim>0:
             print('Features have been scaled')
 
+        # Added by KBM:
+        # HAY QUE MODIFICAR DE recording.py (LN 144, 185): PARA PREDER APAGAR PCA (2024-06-27)
+        # DE ESTE SCRIPT HAY QUE MODIFICAR LN 448
+        # USE PCA. Fit and transform features of training set
+        # Beginning
+        print('PCA analysis: TURNED OFF ***')
+        self.pca = PCA(n_components=90)
+        # Fit on features:
+        allFeaturesPca = self.pca.fit_transform(allFeatures)
+        # allFeaturesPca = allFeatures
+        print('\nVariance explained: {}'.format(self.pca.explained_variance_))
+        print('\n Sum: {}'.format(np.sum(self.pca.explained_variance_)))
+        # Ending
+
         # Get model from learning configuration file and learn
         self.model = deepcopy(config.learning['algo'])
 
@@ -191,12 +209,22 @@ class Analyzer:
             else:
                 self.model = model
 
+        # Added by KBM (11/10/21)
+        # Split into training and test sets
+        # Beginning
+        print('\nEvents per class:')
+        print(self.catalogue['class'].value_counts())
+
         tStartLearning = time.time()
         if featuresIndexes is None:
             self.model = self.model.fit(allFeatures, allLabelsStd)
         else:
             self.model = self.model.fit(allFeatures[:,featuresIndexes], allLabelsStd)
         tEndLearning = time.time()
+
+        # Added by KBM
+        # Beginning
+        # Commenting Model evaluation
 
         #  Model Evaluation (a) with score, (b) with X-validation
         if verbatim>0:
@@ -220,21 +248,218 @@ class Analyzer:
             print_cm(CM, list(self.labelEncoder.classes_),hide_zeroes=True,max_str_label_size=2,float_display=False)
 
             # (b) X-validation
-            sss = config.learning['cv']
-            print(sss)
-            CM=list()
-            acc=list()
+            #cambiado por Karina
+            print('\nCross validation')
+            sss2 = config.learning['cv']
+            print(sss2)
+            CM = list()
+            acc = list()
+
+            # Added by KBM
+            # SCORES FOR X-VAL
+            # Beginning
+            EX_pre, EX_rec, EX_f1, EX_sup = [], [], [], []
+            LP_pre, LP_rec, LP_f1, LP_sup = [], [], [], []
+            RE_pre, RE_rec, RE_f1, RE_sup = [], [], [], []
+            TR_pre, TR_rec, TR_f1, TR_sup = [], [], [], []
+            VT_pre, VT_rec, VT_f1, VT_sup = [], [], [], []
+            NO_pre, NO_rec, NO_f1, NO_sup = [], [], [], []
+            # Ending
+
             model_Xval = deepcopy(self.model)
-            for (i, (train_index, test_index)) in enumerate(sss.split(allFeatures, allLabelsStd)):
-                predictionsStd = model_Xval.fit(allFeatures[train_index], allLabelsStd[train_index]).predict(allFeatures[test_index])
+            for (i, (train_index, test_index)) in enumerate(sss2.split(allFeaturesPca, allLabelsStd)):
+                # for (i, (train_index, test_index)) in enumerate(sss2.split(allFeatures, allLabelsStd)):
+                # for (i, (train_index, test_index)) in enumerate(sss2.split(x_train, y_train)):
+                predictionsStd = model_Xval.fit(allFeaturesPca[train_index], allLabelsStd[train_index]).predict(
+                    allFeaturesPca[test_index])
+                # predictionsStd = model_Xval.fit(allFeatures[train_index], allLabelsStd[train_index]).predict(allFeatures[test_index])
+                # predictionsStd = model_Xval.fit(x_train[train_index], y_train[train_index]).predict(x_train[test_index])
                 predictions = self.labelEncoder.inverse_transform(predictionsStd)
-                CM.append(confusion_matrix(allLabels[test_index],predictions, labels=self.labelEncoder.classes_))
-                acc.append(accuracy_score(allLabels[test_index],predictions))
-            print('Cross-validation results: ', np.mean(acc)*100, ' +/- ', np.std(acc)*100, ' %')
-            print_cm(np.mean(CM, axis=0),self.labelEncoder.classes_,hide_zeroes=True,max_str_label_size=2,float_display=False)
+                true_lab_test_Xval = self.labelEncoder.inverse_transform(allLabelsStd[test_index])
+                # true_lab_test_Xval = self.labelEncoder.inverse_transform(y_train[test_index])
+                CM.append(confusion_matrix(allLabels[test_index], predictions, labels=self.labelEncoder.classes_))
+                # CM.append(confusion_matrix(true_lab_test_Xval, predictions, labels=self.labelEncoder.classes_))
+                acc.append(accuracy_score(allLabels[test_index], predictions))
+                # acc.append(accuracy_score(true_lab_test_Xval, predictions))
+                # Added by KBM
+                # SCORES FOR X-VAL
+                # Beginning
+                class_report = classification_report(true_lab_test_Xval, predictions,
+                                                     target_names=self.labelEncoder.classes_, output_dict=True)
+                # Scores for explosions
+                # EX_pre.append(class_report['Explosion']['precision'])
+                # EX_rec.append(class_report['Explosion']['recall'])
+                # EX_f1.append(class_report['Explosion']['f1-score'])
+                # EX_sup.append(class_report['Explosion']['support'])
+                # Scores for LPs
+                LP_pre.append(class_report['LP']['precision'])
+                LP_rec.append(class_report['LP']['recall'])
+                LP_f1.append(class_report['LP']['f1-score'])
+                LP_sup.append(class_report['LP']['support'])
+                # Scores for Regionals
+                # RE_pre.append(class_report['Regional']['precision'])
+                # RE_rec.append(class_report['Regional']['recall'])
+                # RE_f1.append(class_report['Regional']['f1-score'])
+                # RE_sup.append(class_report['Regional']['support'])
+                # Scores for tremors
+                TR_pre.append(class_report['Tremor']['precision'])
+                TR_rec.append(class_report['Tremor']['recall'])
+                TR_f1.append(class_report['Tremor']['f1-score'])
+                TR_sup.append(class_report['Tremor']['support'])
+                # Scores for VTs
+                # VT_pre.append(class_report['VT']['precision'])
+                # VT_rec.append(class_report['VT']['recall'])
+                # VT_f1.append(class_report['VT']['f1-score'])
+                # VT_sup.append(class_report['VT']['support'])
+                # Scores for noise
+                NO_pre.append(class_report['noise']['precision'])
+                NO_rec.append(class_report['noise']['recall'])
+                NO_f1.append(class_report['noise']['f1-score'])
+                NO_sup.append(class_report['noise']['support'])
+                # Ending
+            print('Cross-validation results: ', np.mean(acc) * 100, ' +/- ', np.std(acc) * 100, ' %')
+            print_cm(np.mean(CM, axis=0), self.labelEncoder.classes_, hide_zeroes=True, max_str_label_size=2,
+                     float_display=False)
+            # Added by KBM:
+            # PRINT METRICS FOR EACH CLASS
+            # Beginning
+            print('\nMetrics for each class:')
+            print('Class \tPrecision \tRecall \t\tF1-score \tSupport')
+            # print('Ex \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+            # np.mean(EX_pre), np.std(EX_pre), np.mean(EX_rec), np.std(EX_rec),
+            # np.mean(EX_f1), np.std(EX_f1), np.mean(EX_sup), np.std(EX_sup)))
+            print('LP \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+                np.mean(LP_pre), np.std(LP_pre), np.mean(LP_rec), np.std(LP_rec),
+                np.mean(LP_f1), np.std(LP_f1), np.mean(LP_sup), np.std(LP_sup)))
+            # print('Re \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+            # np.mean(RE_pre), np.std(RE_pre), np.mean(RE_rec), np.std(RE_rec),
+            # np.mean(RE_f1), np.std(RE_f1), np.mean(RE_sup), np.std(RE_sup)))
+            print('Tr \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+                np.mean(TR_pre), np.std(TR_pre), np.mean(TR_rec), np.std(TR_rec),
+                np.mean(TR_f1), np.std(TR_f1), np.mean(TR_sup), np.std(TR_sup)))
+            # print('VT \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+            # np.mean(VT_pre), np.std(VT_pre), np.mean(VT_rec), np.std(VT_rec),
+            # np.mean(VT_f1), np.std(VT_f1), np.mean(VT_sup), np.std(VT_sup)))
+            print('no \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f} \t{:.2f}+/-{:.2f}'.format(
+                np.mean(NO_pre), np.std(NO_pre), np.mean(NO_rec), np.std(NO_rec),
+                np.mean(NO_f1), np.std(NO_f1), np.mean(NO_sup), np.std(NO_sup)))
+            # Ending
+        # Ending
+
+            # Added by KBM:
+            # Beginning
+            print('\nTESTING:')
+
+            # Get or define useful stuff
+            features_test = FeatureVector(config, verbatim=verbatim)
+            nData_test = len(self.catalogue_test.index)
+            if returnData:
+                allData = np.zeros((nData_test,), dtype=object)
+            allLabels_test = np.zeros((nData_test,), dtype=object)
+            allFeatures_test = np.zeros((nData_test, features_test.n_domains * features_test.n_features), dtype=float)
+
+            # Read all labeled signatures (labels+data) from the catalogue, and extract features
+            tStart = time.time()
+            for i in range(len(self.catalogue_test.index)):
+                if self._verbatim > 2:
+                    print('Data index: ', i)
+                secondFloat = self.catalogue_test.iloc[i]['second']
+                tStartSignature = datetime.datetime(int(self.catalogue_test.iloc[i]['year']),
+                                                    int(self.catalogue_test.iloc[i]['month']),
+                                                    int(self.catalogue_test.iloc[i]['day']),
+                                                    int(self.catalogue_test.iloc[i]['hour']),
+                                                    int(self.catalogue_test.iloc[i]['minute']),
+                                                    int(secondFloat),
+                                                    int((secondFloat - int(secondFloat)) * 1000000))  # microseconds
+                duration = self.catalogue_test.iloc[i]['length']
+                path = self.catalogue_test.iloc[i]['path']
+                (fs, signature) = requestObservation(config, tStartSignature, duration, path, verbatim=0)
+
+                # Get label and check that it is single label (multi label not supported yet)
+                lab_test = self.catalogue_test.iloc[i]['class']
+                if type(lab_test) is list:
+                    print('Multi label not implemented for learning yet')
+                    return None
+                allLabels_test[i] = lab_test
+
+                if f_min and f_max:
+                    butter_order = config.analysis['butter_order']
+                    signature = butter_bandpass_filter(signature, f_min, f_max, fs, order=butter_order)
+
+                # Preprocessing & features extraction
+                allFeatures_test[i] = extract_features(config, signature.reshape(1, -1), features_test, fs)
+
+            tEnd = time.time()
+            if verbatim > 0:
+                print('Test data have been read and features have been extracted ', np.shape(allFeatures_test))
+                # print('Computation time: {} seconds'.format(tEnd - tStart))
+
+            # Compress labels and features in case of None values (if reading is empty for example)
+            i = np.where(allLabels_test != np.array(None))[0]
+            allFeatures_test = allFeatures_test[i]
+            allLabels_test = allLabels_test[i]
+            #    if returnData:
+            #        allData = allData[i]
+
+            # Transform labels
+            self.labelEncoder = preprocessing.LabelEncoder().fit(allLabels_test)
+            allLabelsStd_test = self.labelEncoder.transform(allLabels_test)
+            if verbatim > 0:
+                print('Model will be trained on %d classes' % len(self.labelEncoder.classes_),
+                      np.unique(allLabelsStd_test),
+                      self.labelEncoder.classes_)
+
+            # Scale features and store scaler
+            self.scaler = preprocessing.StandardScaler().fit(allFeatures_test)
+            allFeatures_test = self.scaler.transform(allFeatures_test)
+            if verbatim > 0:
+                print('Features have been scaled')
+
+            # Added by KBM
+            # Transform test features with PCA
+            # Beginning
+            # allFeatures_testPca = allFeatures_test
+            allFeatures_testPca = self.pca.transform(allFeatures_test)
+            # Ending
+
+        if featuresIndexes is None:
+            test_predictionsStd = self.model.predict(allFeatures_testPca)
+            # test_predictionsStd = self.model.predict(allFeatures_test)
+            # test_predictions = self.model.predict(x_test)
+        else:
+            test_predictionsStd = self.model.predict(allFeatures_testPca[:, featuresIndexes])
+            # test_predictionsStd = self.model.predict(allFeatures_test[:, featuresIndexes])
+            # test_predictions = self.model.predict(allFeatures[:, test_idx])
+
+        test_predictions = self.labelEncoder.inverse_transform(test_predictionsStd)
+
+        # Test evaluation
+        print('Test score is: ', accuracy_score(allLabelsStd_test, test_predictionsStd))
+        # print('Test score is: ', accuracy_score(y_test, test_predictions))
+        lab = list(range(len(self.labelEncoder.classes_)))  # 'unknown' class not needed.
+        CM_t = confusion_matrix(allLabelsStd_test, test_predictionsStd, labels=lab)
+        # CM_t = confusion_matrix(y_test, test_predictions, labels=lab)
+        print('and associated confusion matrix is:')
+        print_cm(CM_t, list(self.labelEncoder.classes_), hide_zeroes=True, max_str_label_size=2, float_display=False)
+
+        print('\nMetrics for each class:')
+        print(classification_report(allLabels_test, test_predictions, target_names=self.labelEncoder.classes_))
+        # print(classification_report(y_test, test_predictions, target_names=self.labelEncoder.classes_))
+        # Ending
+
+        # Added by KBM:
+        # Store features (training set)
+        # Beginning
+        df_features = pd.DataFrame(data=allFeatures_test, columns=features.featuresRef)
+        file = 'all_features_scaled.csv'
+        df_features.to_csv(file, index=False)
+        # Ending
+
+
 
         if returnData:
-            return allData, allLabels
+            #línea modificada por Karina
+            return allFeatures
         else:
             return None
 
