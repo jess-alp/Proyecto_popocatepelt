@@ -52,7 +52,6 @@ from os import mkdir
 from sklearn.metrics import confusion_matrix, accuracy_score
 import matplotlib.pyplot as plt
 
-
 class Recording:
     """
     Object describing a recording to be analyzed. All .wav, .dat or other
@@ -82,6 +81,12 @@ class Recording:
         self.predictedProbas = None # Keeps all the output probabilities
         self.decidedClasses = None  # Keeps only argmax(proba or -1 if unknown). Depends on getClasses function.
         self.associatedProbas = None # Proba associated to the decided class
+        # Added by KBM:
+        # Beginning
+        # Arrays with stats and ends of windows
+        self.w_starts = None  # Keeps all starting positions of sliding window
+        self.w_ends = None  # Keeps all ending positions of sliding window
+        # Ending
         if verbatim > 1:
             print("\tRecording has been read and is of shape", np.shape(self.data))
 
@@ -115,10 +120,24 @@ class Recording:
         saving_path = config.general['project_root'] + config.application['name'].upper() + '/'   \
         'res/' + config.configuration_number + '/' + self.path.split('/')[-1] + '__RES.np'
         window_length_n = int(window_length_t * self.fs)
-        # Self.predictedProbas is of shape (nBands, nData, nClasses)
-        self.predictedProbas = np.array([[[None]*n_classes]*np.shape(self.data)[0]]*n_bands)
-        self.decidedClasses = np.array([[None]*np.shape(self.data)[0]]*n_bands)
-        self.associatedProbas = np.array([[None]*np.shape(self.data)[0]]*n_bands)
+
+        # Karina implemento una función distinta para las ventanas
+        # Added by KBM:
+        # Beginning
+        n = (np.shape(self.data)[0] - window_length_n) / (window_length_n - delta)
+
+        # Number of windows:
+        num_window = int(n)
+        # Ending
+
+        # Modified by KBM:
+        # Self.predictedProbas is of shape (nBands, num_window, nClasses)
+        # The following are arrays of desired shape (all elements are None):
+        self.predictedProbas = np.array([[[None]*n_classes]*num_window]*n_bands)
+        self.decidedClasses = np.array([[None]*num_window]*n_bands)
+        self.associatedProbas = np.array([[None]*num_window]*n_bands)
+        self.w_starts = np.array([[None]*num_window]*n_bands)
+        self.w_ends = np.array([[None]*num_window]*n_bands)
 
         # Multi-scale analysis not implemented yet
         if n_window != 1:
@@ -137,13 +156,12 @@ class Recording:
                 if i_analyzed == (num_window - 1):
                     i_end = np.shape(self.data)[0]
 
-            # Otherwise, get signal, and for each bandwidth: get features and make prediction and store predictions
-            # Get signal
-            signal = self.data[i_start:i_end]
-            # Loop for the various bandwidths
-            for i in range(n_bands):
-                if self._verbatim > 2:
-                    print('\t\tData index: ', i_analyzed, '\tbandwidth: ', i)
+                # Get signal
+                signal = self.data[i_start:i_end]
+                # Loop for the various bandwidths
+                for i in range(n_bands):
+                    if self._verbatim > 2:
+                        print('\t\tData index: ', i_analyzed, '\tbandwidth: ', i)
 
                 # Filtering:
                 f_min = config.analysis['bandwidth']['f_min'][i]
@@ -165,6 +183,49 @@ class Recording:
                 # Make prediction (labels store all probas, predictedClass only the decided one)
                 self.predictedProbas[i,i_analyzed] = analyzer.model.predict_proba(features.featuresValues)
 
+                # Added by KBM (2/12/21)
+                # If argmax(predicted probas is less than threshold, then
+                #  run again but window size twice as large:
+                # Beginning
+                maxes = np.max(self.predictedProbas[i, i_analyzed], axis=0)  # Maximum probability of all classes
+                if maxes < config.features['thresholds'][0]:
+                    # Run analyze again with bigger window.
+                    i_start = (i_analyzed * window_length_n) - (i_analyzed * delta) - int(window_length_n * .5)
+                    i_end = (i_analyzed + 1) * window_length_n - (i_analyzed * delta) + int(window_length_n * .5)
+                    # Special cases:
+                    if i_start < 0:
+                        i_start = 0
+                        #i_end = (i_analyzed + 1) * window_length_n - (i_analyzed * delta) + int(window_length_n * 1)
+                    elif i_end > np.shape(self.data)[0]:
+                        i_end = np.shape(self.data)[0]
+                        #i_start = (i_analyzed * window_length_n) - (i_analyzed * delta) - int(window_length_n * 1)
+                    # Get signal
+                    signal = self.data[i_start:i_end]
+                    # Assume there is one bandwidth
+                    # Filtering:
+                    f_min = config.analysis['bandwidth']['f_min'][i]
+                    f_max = config.analysis['bandwidth']['f_max'][i]
+                    butter_order = config.analysis['butter_order']
+                    #print(i_analyzed)
+                    #print(i_start, i_end)
+                    #print('Len of siganl: {}'.format(len(signal)))
+                    signature = butter_bandpass_filter(signal, f_min, f_max, self.fs, order=butter_order)
+                    # Assume there is no energy normalization
+                    # Get features
+                    features.compute(signature, self.fs)
+                    # Scale features
+                    features.featuresValues = analyzer.scaler.transform(features.featuresValues.reshape(1, -1))
+                    # Apply PCA
+                    features.featuresValues = analyzer.pca.transform(features.featuresValues)
+                    # Make prediction (labels store all probas, predictedClass only the decided one)
+                    self.predictedProbas[i, i_analyzed] = analyzer.model.predict_proba(features.featuresValues)
+                    # Get window positions:
+                    self.w_starts[i, i_analyzed] = i_start
+                    self.w_ends[i, i_analyzed] = i_end
+
+                # Get window positions if maxes > threshold[0]:
+                self.w_starts[i, i_analyzed] = i_start
+                self.w_ends[i, i_analyzed] = i_end
         return
 
     def makeDecision(self, config):
@@ -364,34 +425,35 @@ class Recording:
         # Results on each frequency band
         for i in range(n_bands):
             # Decided classes
-            ax = plt.subplot(gs[3+i*n_bands+1*i%2])
-            s1 = self.decidedClasses[n_bands-1-i,:].astype(np.double)
+            ax = plt.subplot(gs[3 + i * n_bands + 1 * i % 2])
+            s1 = self.decidedClasses[n_bands - 1 - i, :].astype(np.double)
             mask1 = np.isfinite(s1)
-            (a,)=np.shape(self.decidedClasses[n_bands-1-i,mask1])
-            toPlot = np.array(self.decidedClasses[n_bands-1-i,mask1].reshape(1,a),dtype=int)
-        #     # lineObjects = ax.pcolor(toPlot, vmin=-1, vmax=5, cmap=Pastel1)
-            ax.pcolor(toPlot, cmap='Set1') #vmin=-1, vmax=5,
-        #     ax.legend(handles=[line])
-        #     ax.set_xlim((0,a))
-        #     # ax.set_xlabel('')
-        #     # ax.set_xticks([])
-        #     ax.set_ylabel('')
-        #     ax.set_yticks([])
-        #     # title = 'Probability\n' + '(%d-%d Hz)'%(config.analysis['bandwidth']['f_min'][n_bands-1-i],config.analysis['bandwidth']['f_max'][n_bands-1-i])
-        #     # plt.ylabel(title, size=14)
-        #     if i==0:
-        #         # plt.legend(lineObjects, analyzer.labelEncoder.classes_)
-        #         plt.title('Prediction results in the %d different frequency bands'%n_bands, size=14)
+            (a,) = np.shape(self.decidedClasses[n_bands - 1 - i, mask1])
+            toPlot = np.array(self.decidedClasses[n_bands - 1 - i, mask1].reshape(1, a), dtype=int)
+            #     # lineObjects = ax.pcolor(toPlot, vmin=-1, vmax=5, cmap=Pastel1)
+            ax.pcolor(toPlot, cmap='Set1')  # vmin=-1, vmax=5,
+            #     ax.legend(handles=[line])
+            #     ax.set_xlim((0,a))
+            #     # ax.set_xlabel('')
+            #     # ax.set_xticks([])
+            #     ax.set_ylabel('')
+            #     ax.set_yticks([])
+            #     # title = 'Probability\n' + '(%d-%d Hz)'%(config.analysis['bandwidth']['f_min'][n_bands-1-i],config.analysis['bandwidth']['f_max'][n_bands-1-i])
+            #     # plt.ylabel(title, size=14)
+            #     if i==0:
+            #         # plt.legend(lineObjects, analyzer.labelEncoder.classes_)
+            #         plt.title('Prediction results in the %d different frequency bands'%n_bands, size=14)
             # Predicted probabilities
-            ax = plt.subplot(gs[3+i*n_bands+1+1*i%2])
-            s1 = self.predictedProbas[n_bands-1-i,:,:].astype(np.double)
+            ax = plt.subplot(gs[3 + i * n_bands + 1 + 1 * i % 2])
+            s1 = self.predictedProbas[n_bands - 1 - i, :, :].astype(np.double)
             mask1 = np.isfinite(s1)
-            mask1 = mask1[:,0]  # /!\ safe in this case: index 0 is None => all are None
-        #     # lineObjects = ax.plot(x[mask1],self.predictedProbas[n_bands-1-i,mask1],'.')
-            ax.plot(x[mask1],self.predictedProbas[n_bands-1-i,mask1],'.') # Est-ce-qu'on peut mettre un cmap ici ou pas ?
-            colormap = plt.cm.Set1 #nipy_spectral, Set1,Paired
-            colors = [colormap(i) for i in np.linspace(0, 1,len(ax.lines))]
-            for i,j in enumerate(ax.lines):
+            mask1 = mask1[:, 0]  # /!\ safe in this case: index 0 is None => all are None
+            #     # lineObjects = ax.plot(x[mask1],self.predictedProbas[n_bands-1-i,mask1],'.')
+            ax.plot(x[mask1], self.predictedProbas[n_bands - 1 - i, mask1],
+                    '.')  # Est-ce-qu'on peut mettre un cmap ici ou pas ?
+            colormap = plt.cm.Set1  # nipy_spectral, Set1,Paired
+            colors = [colormap(i) for i in np.linspace(0, 1, len(ax.lines))]
+            for i, j in enumerate(ax.lines):
                 j.set_color(colors[i])
 
         #     ax.legend(handles=[line])
@@ -406,7 +468,6 @@ class Recording:
         #     plt.ylabel(title, size=14)
         #     plt.xlabel('Date', size=14)
         #     plt.yticks(fontsize=14)
-
 
         # General things on the figure
         fig.subplots_adjust(hspace=0)
