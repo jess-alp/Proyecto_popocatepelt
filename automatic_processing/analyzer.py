@@ -39,6 +39,9 @@
 import json
 from os.path import isfile, isdir
 import datetime
+
+import matplotlib.pyplot as plt
+
 from features import FeatureVector
 import pickle
 import numpy as np
@@ -108,9 +111,9 @@ class Analyzer:
             self.catalogue_test = None
             if verbatim > 0:
                 print('Catálogo no encontrado. Se espera cargar un modelo previamente entrenado con load()')
-                #Fin 
+                #Fin
         self._verbatim = verbatim
-        if self._verbatim>0:
+        if self._verbatim > 0:
             print('\n\n *** ANALYZER ***')
         return
 
