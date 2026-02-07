@@ -45,6 +45,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit
 from sklearn import svm
 from DataReadingFunctions import *
+# Added by KBM
+# Beginning
+from sklearn.model_selection import GridSearchCV
+# Ending
 
 class Config:
     """
