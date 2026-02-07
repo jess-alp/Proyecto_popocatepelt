@@ -68,6 +68,13 @@ setting_file_path = sys.argv[1]
 action = sys.argv[2]
 verbatim = sys.argv[3]
 
+# # Added by me: (Karina)
+#setting_file_path = "/home/calo/compartido/AAA-master/config/general/SVM_grid_search.json"
+#setting_file_path = "/home/calo/compartido/AAA-master/config/general/RF_grid_search.json"
+setting_file_path = "/home/calo/compartido/AAA-master/config/general/newsettings_UC1_LPTRNOOT.json"
+action = sys.argv[1]
+verbatim = "2"
+
 
 # Check input arguments
 try:
