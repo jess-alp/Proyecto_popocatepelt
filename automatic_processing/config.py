@@ -226,6 +226,8 @@ class Config:
             print("X-validation splitting data procedure at config.learning['cv'] could not be found")
             print('--', inst)
             return None
+        # Agregado por J-A: Solo advertir si el catálogo no existe, no detener la ejecución
+        # El catálogo no es necesario si solo se va a analizar con un modelo ya entrenado
         if not isfile(self.general['project_root']+self.application['name'].upper()+'/'+self.learning['path_to_catalogue']):
             print('No learning configuration file at %s'%self.general['project_root']+self.application['name'].upper()+'/'+self.learning['path_to_catalogue'])
             return None
