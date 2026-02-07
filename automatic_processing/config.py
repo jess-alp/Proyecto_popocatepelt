@@ -189,6 +189,27 @@ class Config:
             return None
 
         # Check LEARNING:
+
+            # Added by KBM
+            # Beginning
+            # Adding grid params
+            # SVM:
+            param_grid = [{'kernel': ['rbf'],
+                           'gamma': [100, 10, 1, 0.1, 0.01, 0.001, 0.0001],
+                           'C': [0.1, 1, 10, 100, 1000]},
+                          {'kernel': ['linear'],
+                           'C': [0.1, 1, 10, 100, 1000]}]
+            # Param_grid = {'C': [60, 70, 80, 100, 300, 500],
+            #               'gamma': [0.008, 0.009, .01, 0.03, 0.05],
+            #               'kernel': ['rbf']}
+            # RF:
+            # param_grid = {'n_estimators': [100, 200, 500],
+            #              'max_features': ['auto', 'log2'],
+            #              'max_depth': [5, 30, 60, None],
+            #              'criterion': ['gini', 'entropy'],
+            #              'bootstrap': [True, False]}
+        # Ending
+
         try:
             self.learning['algo'] = eval(self.learning['algo'])
         except Exception as inst:
