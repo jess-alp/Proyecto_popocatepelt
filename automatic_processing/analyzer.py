@@ -512,6 +512,33 @@ class Analyzer:
         tmp_dict = pickle.load(open(savingPath,'rb'))
         self.__dict__.update(tmp_dict)
         self._verbatim = verbatim
+
+        # Agregado J-A: Parche de compatibilidad para modelos SVC de sklearn antiguo
+        # Los modelos entrenados con sklearn < 1.0 usan atributos internos diferentes
+        # Este parche convierte los atributos al formato nuevo de sklearn 1.x
+        from sklearn.svm import SVC
+        if isinstance(self.model, SVC):
+            # En sklearn antiguo, probA_ y probB_ son atributos directos
+            # En sklearn nuevo, son properties que leen de _probA y _probB
+            if hasattr(self.model, '__dict__'):
+                model_dict = self.model.__dict__
+                # Buscar probA_ en el diccionario del modelo
+                if 'probA_' in model_dict and '_probA' not in model_dict:
+                    object.__setattr__(self.model, '_probA', model_dict['probA_'])
+                if 'probB_' in model_dict and '_probB' not in model_dict:
+                    object.__setattr__(self.model, '_probB', model_dict['probB_'])
+                # Si no existe probA_ en el dict, puede estar como atributo de clase
+                if '_probA' not in model_dict:
+                    try:
+                        # Intentar obtener el valor de cualquier forma
+                        probA = model_dict.get('probA_', np.array([]))
+                        probB = model_dict.get('probB_', np.array([]))
+                        object.__setattr__(self.model, '_probA', probA)
+                        object.__setattr__(self.model, '_probB', probB)
+                    except:
+                        pass
+        # Fin
+
         if self._verbatim > 0:
             print('Analyzer has been loaded from: ', savingPath)
         return
