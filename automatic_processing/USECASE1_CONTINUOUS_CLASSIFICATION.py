@@ -55,7 +55,6 @@ action_range = ['training', 'analyzing', 'making_decision', 'display']
 
 
 # Read input arguments
-# Read input arguments
 #if len(sys.argv) != 4:
 #    print('This usecase should be use with 3 arguments: ')
 #    print('\t arg1: configuration file path (i.e. settings_15.json) with the configuration file located in config folder')
@@ -64,9 +63,9 @@ action_range = ['training', 'analyzing', 'making_decision', 'display']
 #    print('\t arg3: verbatim, depending on how chatty you want the system to be. Should be in ', verbatim_range)
 #    sys.exit()
 
-setting_file_path = sys.argv[1]
-action = sys.argv[2]
-verbatim = sys.argv[3]
+#setting_file_path = sys.argv[1]
+#action = sys.argv[1]
+verbatim = 2
 
 # # Added by me: (Karina)
 #setting_file_path = "/home/calo/compartido/AAA-master/config/general/SVM_grid_search.json"
