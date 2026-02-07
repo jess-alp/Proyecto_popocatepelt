@@ -230,7 +230,7 @@ class Config:
         # El catálogo no es necesario si solo se va a analizar con un modelo ya entrenado
         if not isfile(self.general['project_root']+self.application['name'].upper()+'/'+self.learning['path_to_catalogue']):
             print('No learning configuration file at %s'%self.general['project_root']+self.application['name'].upper()+'/'+self.learning['path_to_catalogue'])
-            return None
+            # No retornar None aquí para permitir análisis sin catálogo
 
         # Check FEATURES
         if not isfile(self.general['project_root'] + self.features['path_to_config']):
