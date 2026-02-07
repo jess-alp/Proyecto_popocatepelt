@@ -97,6 +97,18 @@ class Analyzer:
         self.pathToCatalogue = config.general['project_root']+config.application['name'].upper()+'/'+config.learning['path_to_catalogue']
         self.catalogue = pickle.load(open(self.pathToCatalogue,'rb'))
         self.catalogue_test = pickle.load(open(self.pathToCatalogue_test, 'rb'))
+        # Agregado por J-A: Carga opcional del catálogo
+        # Si solo se va a analizar (no entrenar), el catálogo no es necesario
+        # porque el modelo ya está entrenado y se cargará con load()
+        try:
+            self.catalogue = pickle.load(open(self.pathToCatalogue, 'rb'))
+            self.catalogue_test = pickle.load(open(self.pathToCatalogue_test, 'rb'))
+        except FileNotFoundError:
+            self.catalogue = None
+            self.catalogue_test = None
+            if verbatim > 0:
+                print('Catálogo no encontrado. Se espera cargar un modelo previamente entrenado con load()')
+                #Fin 
         self._verbatim = verbatim
         if self._verbatim>0:
             print('\n\n *** ANALYZER ***')
