@@ -47,7 +47,7 @@ from sklearn import preprocessing
 from tools import butter_bandpass_filter
 from featuresFunctions import energy, energy_u
 from math import sqrt
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 from sklearn.model_selection import cross_val_score, StratifiedShuffleSplit
 from tools import print_cm
 import time
