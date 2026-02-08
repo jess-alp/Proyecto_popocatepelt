@@ -115,6 +115,7 @@ elif action == 'analyzing':
         analyzer.load(config)
     except:
         print('No analyzer has been trained with configuration file ', setting_file_path)
+        print('Error:', e)
         print('Run script with training action first')
         sys.exit()
     # Analyze the dataset
