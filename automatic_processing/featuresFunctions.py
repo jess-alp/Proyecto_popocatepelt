@@ -45,13 +45,16 @@ import numpy as np
 from math import log
 from math import inf
 from numpy import histogram
-from scipy.stats import threshold
+# Modificado por J-A: esta función se comento ya que fue removida
+# por las versiones más recientes de scipy
+# from scipy.stats import threshold
 from python_speech_features import mfcc
 
 
 # Añadido por J-A:
 # Se remplazo scipy.stats.threshold que fue removido scipy >= 1.0
 # este parche replica la función replica la original
+# afecta a la función silence_ratio() (linea 532, 544) - Usa threshold() para determinar segmentos silenciosos
 def threshold(a, threshmin=None, threshmax=None, newval=0):
     """
     Clip array to a given value.
@@ -341,7 +344,6 @@ def n_points(signal, arg_dict):
     else:
         print('n points is not finite')
         return 0
-
 
 def std_u(signal, arg_dict):
     s = np.std(signal)
