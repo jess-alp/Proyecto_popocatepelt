@@ -49,6 +49,38 @@ from scipy.stats import threshold
 from python_speech_features import mfcc
 
 
+# Añadido por J-A:
+# Se remplazo scipy.stats.threshold que fue removido scipy >= 1.0
+# este parche replica la función replica la original
+def threshold(a, threshmin=None, threshmax=None, newval=0):
+    """
+    Clip array to a given value.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data
+    threshmin : float or None
+        Minimum threshold. Values below this will be set to newval.
+    threshmax : float or None
+        Maximum threshold. Values above this will be set to newval.
+    newval : float
+        Value to set for clipped elements.
+
+    Returns
+    -------
+    array
+        Array with values outside thresholds replaced with newval.
+    """
+    a = np.asarray(a).copy()
+    if threshmin is not None:
+        a[a < threshmin] = newval
+    if threshmax is not None:
+        a[a > threshmax] = newval
+    return a
+# Fin J-A
+
+
 def energy_u(signal, arg_dict={}):
     """ Returns signal power over signal dimension (E(u))
     - signal: [s1, s2, s3, ...]
