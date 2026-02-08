@@ -299,7 +299,11 @@ def max_sur_mean(signal, arg_dict):
 
 
 def n_points(signal, arg_dict):
-    f = len(signal)
+    """ Modified by kbm (08/10/21)
+    Divide by fs to get length "normalized"
+    by sample rate """
+    fs = arg_dict['fs']
+    f = len(signal)/fs
     if np.isfinite(f):
         return f
     else:
