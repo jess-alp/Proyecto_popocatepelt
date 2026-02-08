@@ -113,11 +113,13 @@ elif action == 'analyzing':
     analyzer = Analyzer(config, verbatim=verbatim)
     try:
         analyzer.load(config)
-    except:
+        # Agregado por J-A: Mostrar el error real para diagnóstico
+    except Exception as e:
         print('No analyzer has been trained with configuration file ', setting_file_path)
         print('Error:', e)
         print('Run script with training action first')
         sys.exit()
+
     # Analyze the dataset
     analyzedSet = Dataset(config,verbatim=verbatim)
     analyzedSet.analyze(analyzer, config, save=True)
