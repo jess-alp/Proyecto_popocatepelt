@@ -37,7 +37,7 @@
 # knowledge of the CeCILL|CeCILL-B|CeCILL-C
 
 import obspy
-import soundfile
+#import soundfile
 import numpy as np
 from os.path import isfile
 import matplotlib.pylab as plt
@@ -52,6 +52,7 @@ except ImportError:
     from obspy.clients.arclink.client import Client
 # Fin
 from tools import filter_data
+
 
 
 def read_ubinas(file_path, config, verbatim=0):
@@ -215,7 +216,7 @@ def request_merapi(config, tStart, duration, verbatim=0):
         print('Impossible to reach client ')
         print('--', inst)
         return 0, []
-    # End of modification by J-A
+    # Fin
 
     delta_t = eval(config.data_to_analyze['reading_arguments']['delta_t'])
     t = UTCDateTime(tStart)
