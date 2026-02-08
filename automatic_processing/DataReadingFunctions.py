@@ -196,6 +196,27 @@ def request_merapi(config, tStart, duration, verbatim=0):
         print('--', inst)
         return 0, []
 
+    # Modificado por J-A: Compatibilidad con FDSN y clientes arclink
+    try:
+        # Try FDSN client primero (para versiones modernas de obspy)
+        reading_args = config.data_to_analyze['reading_arguments']
+        if 'base_url' in reading_args:
+            # FDSN client utiliza base_url
+            client = Client(base_url=reading_args['base_url'])
+        elif 'host' in reading_args:
+            host = reading_args['host']
+            if not host.startswith('http'):
+                host = f"http://{host}"
+            client = Client(base_url=host)
+        else:
+            print('No valid client configuration found (need base_url or host)')
+            return 0, []
+    except Exception as inst:
+        print('Impossible to reach client ')
+        print('--', inst)
+        return 0, []
+    # End of modification by J-A
+
     delta_t = eval(config.data_to_analyze['reading_arguments']['delta_t'])
     t = UTCDateTime(tStart)
 
