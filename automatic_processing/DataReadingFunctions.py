@@ -43,7 +43,14 @@ from os.path import isfile
 import matplotlib.pylab as plt
 import datetime
 from obspy import UTCDateTime
-from obspy.clients.arclink.client import Client
+# Modificado por J-A: arclink client fue removido en obspy >= 1.3
+# Se cambio por FDSN client para compatibilidad con obspy más moderno
+try:
+    from obspy.clients.fdsn import Client
+except ImportError:
+    # Línea por si se usan versiones más viejas de obspy en el entorno
+    from obspy.clients.arclink.client import Client
+# Fin
 from tools import filter_data
 
 
