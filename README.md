@@ -102,7 +102,7 @@ Funciones que dependen de este cambio:
 - silence_ratio()
 ---
 
-## 2. Modernizacion del Cliente ObsPy (ArcLink a FDSN)
+### 2. Modernizacion del Cliente ObsPy (ArcLink a FDSN)
 
 Archivo: `DataReadingFunctions.py` (lineas 46-53, 191-211)
 
@@ -118,7 +118,7 @@ except ImportError:
 
 ---
 
-## 4. Dependencias Agregadas en `environment.yml`
+### 3. Dependencias Agregadas en `environment.yml`
 
 Se agregaron las dependencias necesarias para ejecutar AAA/UAAA en el entorno conda proporcionado por S. Valade.
 
