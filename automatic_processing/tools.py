@@ -222,6 +222,9 @@ def getClasses(probas, threshold=None, thresholding=False):
 
     # If thresholding
     if thresholding:
+        # Lo agrego yo!!!! (Karina)
+        #print('PROBLEMA:', threshold, len(threshold), n_classes)
+        # La línea de abajo no va comentada!!!
         assert len(threshold) == n_classes
         maxesUpdated = [-maxes[i] if maxes[i] < threshold[potentialClasses[i]] else maxes[i] for i in range(n_data)]
         potentialClassesUpdated = [-1 if maxes[i] < threshold[potentialClasses[i]] else potentialClasses[i] for i in range(n_data)]
